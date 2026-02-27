@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSocket } from "../../contexts/SocketContext";
 import { useRoom } from "../../contexts/RoomContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { useModeration } from "../../contexts/ModerationContext";
 
 export default function TeamChat() {
     const { socket } = useSocket();
@@ -16,6 +17,8 @@ export default function TeamChat() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const listRef = useRef(null);
+    const { isRestricted } = useModeration();
+    const chatRestricted = isRestricted("chat");
 
     // Load chat history on mount + listen for incoming messages
     useEffect(() => {
@@ -100,15 +103,16 @@ export default function TeamChat() {
                 <input
                     type="text"
                     className="team-chat__input"
-                    value={input}
+                    value={chatRestricted ? "" : input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a message…"
+                    placeholder={chatRestricted ? "🔒 Chat restricted by owner" : "Type a message…"}
+                    disabled={chatRestricted}
                 />
                 <button
                     className="team-chat__send"
                     onClick={handleSend}
-                    disabled={!input.trim()}
+                    disabled={chatRestricted || !input.trim()}
                 >
                     <span className="material-symbols-outlined">send</span>
                 </button>

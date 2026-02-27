@@ -174,8 +174,15 @@ export function useWebRTC() {
     setIsMuted((m) => !m);
   }, [localStream]);
 
+  /** Force mute — always mutes, never toggles */
+  const forceMute = useCallback(() => {
+    if (!localStream) return;
+    localStream.getAudioTracks().forEach((t) => { t.enabled = false; });
+    setIsMuted(true);
+  }, [localStream]);
+
   // Cleanup on unmount
   useEffect(() => () => leaveVoice(), []); // eslint-disable-line
 
-  return { peers, localStream, isMuted, inVoice, joinVoice, leaveVoice, toggleMic };
+  return { peers, localStream, isMuted, inVoice, joinVoice, leaveVoice, toggleMic, forceMute };
 }

@@ -14,6 +14,7 @@ import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { useSocket } from "../../hooks/useSocket";
 import { useRoom } from "../../contexts/RoomContext";
+import { useModeration } from "../../contexts/ModerationContext";
 import Toolbar from "./Toolbar";
 
 const TOOLS = { PEN: "pen", ERASER: "eraser" };
@@ -23,6 +24,8 @@ export default function DrawBoard() {
   const canvasRef = useRef(null);
   const { socket } = useSocket();
   const { projectId } = useRoom();
+  const { isRestricted } = useModeration();
+  const drawRestricted = isRestricted("draw");
 
   // Drawing state refs
   const isDrawing = useRef(false);
@@ -230,7 +233,7 @@ export default function DrawBoard() {
   };
 
   return (
-    <div className="draw-board">
+    <div className="draw-board" style={{ position: "relative" }}>
       <Toolbar
         tool={tool}
         color={color}
@@ -244,12 +247,24 @@ export default function DrawBoard() {
       <canvas
         ref={canvasRef}
         className="draw-board__canvas"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        style={{ cursor: tool === TOOLS.ERASER ? "cell" : "crosshair" }}
+        onPointerDown={drawRestricted ? undefined : handlePointerDown}
+        onPointerMove={drawRestricted ? undefined : handlePointerMove}
+        onPointerUp={drawRestricted ? undefined : handlePointerUp}
+        onPointerLeave={drawRestricted ? undefined : handlePointerUp}
+        style={{ cursor: drawRestricted ? "not-allowed" : tool === TOOLS.ERASER ? "cell" : "crosshair" }}
       />
+      {drawRestricted && (
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.3)", zIndex: 10, pointerEvents: "none"
+        }}>
+          <div style={{ background: "rgba(239,68,68,0.9)", color: "#fff", padding: "8px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>lock</span>
+            Drawing restricted by room owner
+          </div>
+        </div>
+      )}
     </div>
   );
 }

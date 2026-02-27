@@ -110,4 +110,4 @@ function leaveRoom(io, socket, roomId) {
   console.log(`[room] ${socket.user.email} left room ${roomId}`);
 }
 
-module.exports = { registerRoomHandlers };
+module.exports = { registerRoomHandlers, roomPresence };

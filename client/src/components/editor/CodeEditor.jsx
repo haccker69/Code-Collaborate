@@ -39,6 +39,7 @@ import { toMonacoLang } from "../../utils/languageMap";
 
 import * as fileApi from "../../api/fileApi";
 import { webcontainerInstance } from "../../utils/webcontainerManager";
+import { useModeration } from "../../contexts/ModerationContext";
 
 loader.config({ monaco });
 
@@ -184,6 +185,8 @@ function registerTheme() {
  */
 export default function CodeEditor({ fileId, activeFileId, initialContent, language }) {
   const { projectId, setLanguage, projectFiles } = useRoom();
+  const { isRestricted } = useModeration();
+  const codeRestricted = isRestricted("code");
 
   const editorRef = useRef(null);
   const contentRef = useRef(initialContent);
@@ -381,6 +384,12 @@ export default function CodeEditor({ fileId, activeFileId, initialContent, langu
 
   return (
     <div className="code-editor" style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
+      {codeRestricted && (
+        <div style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", padding: "6px 16px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(239,68,68,0.2)" }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>lock</span>
+          You are restricted from editing code by the room owner.
+        </div>
+      )}
       <div className="code-editor__surface" style={{ flex: 1, position: "relative" }}>
         <Editor
           height="100%"
@@ -406,6 +415,7 @@ export default function CodeEditor({ fileId, activeFileId, initialContent, langu
             cursorSmoothCaretAnimation: "on",
             smoothScrolling: true,
             padding: { top: 16 },
+            readOnly: codeRestricted,
           }}
         />
       </div>

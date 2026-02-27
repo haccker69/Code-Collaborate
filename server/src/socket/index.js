@@ -17,6 +17,7 @@ const { registerDrawHandlers } = require("./draw.handler");
 const { registerVoiceHandlers } = require("./voice.handler");
 const { registerChatHandlers } = require("./chat.handler");
 const { registerExecutionHandlers } = require("./execution.handler");
+const { registerModerationHandlers } = require("./moderation.handler");
 
 /**
  * Creates and configures the Socket.IO server.
@@ -62,6 +63,7 @@ function createSocketServer(httpServer) {
     registerVoiceHandlers(io, socket);
     registerChatHandlers(io, socket);
     registerExecutionHandlers(io, socket);
+    registerModerationHandlers(io, socket);
 
     socket.on("disconnect", (reason) => {
       console.log(`[socket] Disconnected: ${socket.id} — ${reason}`);

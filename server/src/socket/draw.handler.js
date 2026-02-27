@@ -9,6 +9,8 @@
 
 "use strict";
 
+const { isRestricted } = require("./moderation.handler");
+
 /**
  * @param {import("socket.io").Server} io
  * @param {import("socket.io").Socket} socket
@@ -20,6 +22,13 @@ function registerDrawHandlers(io, socket) {
    */
   socket.on("draw:preview", ({ roomId, point, color, width, tool }) => {
     if (!roomId || !point) return;
+
+    // Check moderation restrictions
+    if (isRestricted(roomId, socket.id, "draw")) {
+      socket.emit("mod:restricted", { section: "draw", restricted: true });
+      return;
+    }
+
     socket.to(roomId).emit("draw:preview", {
       point, color, width, tool, socketId: socket.id,
     });

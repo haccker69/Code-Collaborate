@@ -14,6 +14,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RoomProvider, useRoom } from "../contexts/RoomContext";
+import { ModerationProvider } from "../contexts/ModerationContext";
 import { useAuth } from "../contexts/AuthContext";
 
 import FileTree from "../components/files/FileTree";
@@ -40,7 +41,7 @@ const COLLAB_MAX = 400;
 
 // ── Inner workspace ──────────────────────────────────────────────────
 
-function Workspace({ projectId, activeTab }) {
+function Workspace({ projectId, activeTab, project }) {
   const { activeFileId, openFiles, language, openFile, closeFile } = useRoom();
   const { socket } = useSocket();
 
@@ -315,7 +316,7 @@ function Workspace({ projectId, activeTab }) {
 
       {/* Collaboration panel */}
       <aside className="workspace__collab" style={{ width: collabWidth }}>
-        <CollaborationPanel />
+        <CollaborationPanel project={project} />
       </aside>
     </div>
   );
@@ -323,8 +324,10 @@ function Workspace({ projectId, activeTab }) {
 
 // ── Collaboration panel ──────────────────────────────────────────────
 
-function CollaborationPanel() {
+function CollaborationPanel({ project }) {
   const { presence } = useRoom();
+  const { user } = useAuth();
+  const isOwner = project?.owner?._id === user?.id || project?.owner === user?.id;
 
   return (
     <div className="collab-panel">
@@ -335,7 +338,7 @@ function CollaborationPanel() {
 
       {/* Voice Chat section */}
       <div className="collab-panel__section">
-        <VoiceRoom presence={presence} />
+        <VoiceRoom presence={presence} isOwner={isOwner} />
       </div>
 
       {/* Divider */}
@@ -388,138 +391,140 @@ export default function RoomPage() {
 
   return (
     <RoomProvider projectId={roomId}>
-      <div className="room">
-        {/* Mobile warning — visible only on small screens via CSS */}
-        <div className="mobile-warning">
-          <span className="material-symbols-outlined">laptop_mac</span>
-          For the best experience, use a desktop or laptop.
-        </div>
-
-        {/* Top bar */}
-        <header className="room__header">
-          {/* Left — Brand + Project */}
-          <div className="room__brand">
-            <span className="material-symbols-outlined room__brand-icon" onClick={() => navigate("/dashboard")} title="Back to dashboard">terminal</span>
-            <h1 className="room__brand-name" onClick={() => navigate("/dashboard")}>CodeCollaborate</h1>
-            <div className="room__brand-divider" />
-            <div className="room__project-info">
-              <span className="room__project-label">Project:</span>
-              <span className="room__project-name">{project?.name}</span>
-            </div>
+      <ModerationProvider projectId={roomId}>
+        <div className="room">
+          {/* Mobile warning — visible only on small screens via CSS */}
+          <div className="mobile-warning">
+            <span className="material-symbols-outlined">laptop_mac</span>
+            For the best experience, use a desktop or laptop.
           </div>
 
-          {/* Center — Tab pills */}
-          <div className="room__nav-wrapper">
-            <nav className="room__nav">
-              <button
-                className={`room__nav-tab ${activeTab === TABS.CODE ? "room__nav-tab--active" : ""}`}
-                onClick={() => setActiveTab(TABS.CODE)}
-              >
-                <span className="material-symbols-outlined room__nav-tab-icon">edit</span>
-                Code
-              </button>
-
-              <button
-                className={`room__nav-tab ${activeTab === TABS.DRAW ? "room__nav-tab--active" : ""}`}
-                onClick={() => setActiveTab(TABS.DRAW)}
-              >
-                <span className="material-symbols-outlined room__nav-tab-icon">draw</span>
-                Drawing Board
-              </button>
-            </nav>
-          </div>
-
-          {/* Right — Actions */}
-          <div className="room__actions">
-            <div className="room__brand-divider" />
-            <button
-              className="room__run-btn"
-              title="Run code"
-              onClick={() => {
-                // Trigger run on the active editor
-                const event = new CustomEvent('collabdev:run');
-                window.dispatchEvent(event);
-              }}
-            >
-              <span className="material-symbols-outlined room__run-icon">play_arrow</span>
-              RUN
-            </button>
-            <div className="room__actions-right">
-              <button className="room__icon-btn" title="Notifications" onClick={handleCopyInvite}>
-                <span className="material-symbols-outlined">notifications</span>
-                <span className="room__notif-dot" />
-              </button>
-              <div style={{ position: "relative" }}>
-                <div
-                  className="room__user-avatar"
-                  onClick={() => setShowProfileMenu((v) => !v)}
-                  title={user?.username || "Profile"}
-                  style={{ background: "linear-gradient(135deg, #fcd34d, #f59e0b)", color: "#000", width: 36, height: 36 }}
-                >
-                  {(user?.username || "U")[0].toUpperCase()}
-                </div>
-
-                {/* Profile dropdown */}
-                {showProfileMenu && (
-                  <div
-                    style={{
-                      position: "absolute", top: 44, right: 0, zIndex: 200,
-                      background: "rgba(26, 29, 39, 0.98)", border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 12, padding: 16, minWidth: 220,
-                      boxShadow: "0 12px 32px rgba(0,0,0,0.4)",
-                      backdropFilter: "blur(16px)",
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #fcd34d, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, color: "#000", flexShrink: 0 }}>
-                        {(user?.username || "U")[0].toUpperCase()}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.username || "Developer"}</div>
-                        <div style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email || ""}</div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => { setShowProfileMenu(false); navigate("/"); }}
-                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 13, fontWeight: 500, transition: "all 0.15s", marginBottom: 4 }}
-                      onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
-                      onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>dashboard</span>
-                      Dashboard
-                    </button>
-                    <button
-                      onClick={() => { setShowProfileMenu(false); logout(); }}
-                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", background: "transparent", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 600, transition: "all 0.15s" }}
-                      onMouseOver={(e) => e.currentTarget.style.background = "rgba(248, 113, 113, 0.1)"}
-                      onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
-                      Log out
-                    </button>
-                  </div>
-                )}
+          {/* Top bar */}
+          <header className="room__header">
+            {/* Left — Brand + Project */}
+            <div className="room__brand">
+              <span className="material-symbols-outlined room__brand-icon" onClick={() => navigate("/dashboard")} title="Back to dashboard">terminal</span>
+              <h1 className="room__brand-name" onClick={() => navigate("/dashboard")}>CodeCollaborate</h1>
+              <div className="room__brand-divider" />
+              <div className="room__project-info">
+                <span className="room__project-label">Project:</span>
+                <span className="room__project-name">{project?.name}</span>
               </div>
             </div>
-          </div>
-        </header>
 
-        {/* Main workspace */}
-        <Workspace projectId={roomId} activeTab={activeTab} />
+            {/* Center — Tab pills */}
+            <div className="room__nav-wrapper">
+              <nav className="room__nav">
+                <button
+                  className={`room__nav-tab ${activeTab === TABS.CODE ? "room__nav-tab--active" : ""}`}
+                  onClick={() => setActiveTab(TABS.CODE)}
+                >
+                  <span className="material-symbols-outlined room__nav-tab-icon">edit</span>
+                  Code
+                </button>
 
-        {/* Status bar */}
-        <footer className="room__statusbar">
-          <div className="room__statusbar-left">
-            <span>☁ Synced</span>
-            <span>⎇ main</span>
-          </div>
-          <div className="room__statusbar-right">
-            <span>Spaces: 2</span>
-            <span>UTF-8</span>
-          </div>
-        </footer>
-      </div>
+                <button
+                  className={`room__nav-tab ${activeTab === TABS.DRAW ? "room__nav-tab--active" : ""}`}
+                  onClick={() => setActiveTab(TABS.DRAW)}
+                >
+                  <span className="material-symbols-outlined room__nav-tab-icon">draw</span>
+                  Drawing Board
+                </button>
+              </nav>
+            </div>
+
+            {/* Right — Actions */}
+            <div className="room__actions">
+              <div className="room__brand-divider" />
+              <button
+                className="room__run-btn"
+                title="Run code"
+                onClick={() => {
+                  // Trigger run on the active editor
+                  const event = new CustomEvent('collabdev:run');
+                  window.dispatchEvent(event);
+                }}
+              >
+                <span className="material-symbols-outlined room__run-icon">play_arrow</span>
+                RUN
+              </button>
+              <div className="room__actions-right">
+                <button className="room__icon-btn" title="Notifications" onClick={handleCopyInvite}>
+                  <span className="material-symbols-outlined">notifications</span>
+                  <span className="room__notif-dot" />
+                </button>
+                <div style={{ position: "relative" }}>
+                  <div
+                    className="room__user-avatar"
+                    onClick={() => setShowProfileMenu((v) => !v)}
+                    title={user?.username || "Profile"}
+                    style={{ background: "linear-gradient(135deg, #fcd34d, #f59e0b)", color: "#000", width: 36, height: 36 }}
+                  >
+                    {(user?.username || "U")[0].toUpperCase()}
+                  </div>
+
+                  {/* Profile dropdown */}
+                  {showProfileMenu && (
+                    <div
+                      style={{
+                        position: "absolute", top: 44, right: 0, zIndex: 200,
+                        background: "rgba(26, 29, 39, 0.98)", border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 12, padding: 16, minWidth: 220,
+                        boxShadow: "0 12px 32px rgba(0,0,0,0.4)",
+                        backdropFilter: "blur(16px)",
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                        <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #fcd34d, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, color: "#000", flexShrink: 0 }}>
+                          {(user?.username || "U")[0].toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.username || "Developer"}</div>
+                          <div style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email || ""}</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setShowProfileMenu(false); navigate("/"); }}
+                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 13, fontWeight: 500, transition: "all 0.15s", marginBottom: 4 }}
+                        onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                        onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>dashboard</span>
+                        Dashboard
+                      </button>
+                      <button
+                        onClick={() => { setShowProfileMenu(false); logout(); }}
+                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", background: "transparent", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 600, transition: "all 0.15s" }}
+                        onMouseOver={(e) => e.currentTarget.style.background = "rgba(248, 113, 113, 0.1)"}
+                        onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
+                        Log out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Main workspace */}
+          <Workspace projectId={roomId} activeTab={activeTab} project={project} />
+
+          {/* Status bar */}
+          <footer className="room__statusbar">
+            <div className="room__statusbar-left">
+              <span>☁ Synced</span>
+              <span>⎇ main</span>
+            </div>
+            <div className="room__statusbar-right">
+              <span>Spaces: 2</span>
+              <span>UTF-8</span>
+            </div>
+          </footer>
+        </div>
+      </ModerationProvider>
     </RoomProvider>
   );
 }

@@ -12,6 +12,7 @@
 "use strict";
 
 const Message = require("../models/Message");
+const { isRestricted } = require("./moderation.handler");
 
 /**
  * @param {import("socket.io").Server} io
@@ -50,6 +51,12 @@ function registerChatHandlers(io, socket) {
      */
     socket.on("chat:send", async ({ roomId, text }) => {
         if (!roomId || !text?.trim()) return;
+
+        // Check moderation restrictions
+        if (isRestricted(roomId, socket.id, "chat")) {
+            socket.emit("mod:restricted", { section: "chat", restricted: true });
+            return;
+        }
 
         const message = {
             sender: socket.user.email,

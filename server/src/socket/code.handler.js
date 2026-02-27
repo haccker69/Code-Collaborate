@@ -13,6 +13,7 @@
 "use strict";
 
 const File = require("../models/File");
+const { isRestricted } = require("./moderation.handler");
 
 /**
  * Per-file debounce timers for autosave.
@@ -61,6 +62,12 @@ function registerCodeHandlers(io, socket) {
   socket.on("code:change", ({ roomId, fileId, content }) => {
     if (!roomId || !fileId || content === undefined) return;
 
+    // Check moderation restrictions
+    if (isRestricted(roomId, socket.id, "code")) {
+      socket.emit("mod:restricted", { section: "code", restricted: true });
+      return;
+    }
+
     // Broadcast to everyone in the room EXCEPT the sender
     socket.to(roomId).emit("code:change", { fileId, content });
 
@@ -79,7 +86,7 @@ function registerCodeHandlers(io, socket) {
       fileId,
       cursor,
       socketId: socket.id,
-      email:    socket.user.email,
+      email: socket.user.email,
     });
   });
 }
