@@ -37,3 +37,7 @@ export const regenerateInvite = async (id) => {
   const res = await api.post(`/projects/${id}/invite/regenerate`);
   return res.data.data.inviteCode;
 };
+
+export const leaveProject = async (id) => {
+  await api.post(`/projects/${id}/leave`);
+};

@@ -17,17 +17,28 @@ export default function TeamChat() {
     const [input, setInput] = useState("");
     const listRef = useRef(null);
 
-    // Listen for incoming messages
+    // Load chat history on mount + listen for incoming messages
     useEffect(() => {
         if (!socket) return;
 
-        const handler = (msg) => {
+        // Request saved messages from server
+        socket.emit("chat:history", { roomId: projectId });
+
+        const onHistory = (history) => {
+            setMessages(history);
+        };
+
+        const onMessage = (msg) => {
             setMessages((prev) => [...prev, msg]);
         };
 
-        socket.on("chat:message", handler);
-        return () => socket.off("chat:message", handler);
-    }, [socket]);
+        socket.on("chat:history", onHistory);
+        socket.on("chat:message", onMessage);
+        return () => {
+            socket.off("chat:history", onHistory);
+            socket.off("chat:message", onMessage);
+        };
+    }, [socket, projectId]);
 
     // Auto-scroll to bottom on new messages
     useEffect(() => {

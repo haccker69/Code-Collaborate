@@ -10,7 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import * as projectApi from "../api/projectApi";
 import * as fileApi from "../api/fileApi";
 
-function ProjectCard({ project, onDelete }) {
+function ProjectCard({ project, onDelete, onLeave }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isOwner = project.owner?._id === user?.id || project.owner === user?.id;
@@ -100,9 +100,21 @@ function ProjectCard({ project, onDelete }) {
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete</span>
           </button>
         ) : (
-          <div style={{ color: "#64748b", padding: 4 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>more_vert</span>
-          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onLeave(project._id, project.name); }}
+            title="Leave project"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#64748b",
+              cursor: "pointer",
+              padding: 4
+            }}
+            onMouseOver={e => e.currentTarget.style.color = "#f59e0b"}
+            onMouseOut={e => e.currentTarget.style.color = "#64748b"}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>logout</span>
+          </button>
         )}
       </div>
 
@@ -669,8 +681,20 @@ export default function DashboardPage() {
     try {
       await projectApi.deleteProject(projectId);
       setProjects((prev) => prev.filter((p) => p._id !== projectId));
-    } catch {
-      alert("Failed to delete project");
+    } catch (err) {
+      console.error("Delete failed:", err.message);
+      alert(err.response?.data?.message || "Failed to delete project");
+    }
+  };
+
+  const handleLeave = async (projectId, projectName) => {
+    if (!window.confirm(`Leave "${projectName}"? You'll need an invite code to rejoin.`)) return;
+    try {
+      await projectApi.leaveProject(projectId);
+      setProjects((prev) => prev.filter((p) => p._id !== projectId));
+    } catch (err) {
+      console.error("Leave failed:", err.message);
+      alert(err.response?.data?.message || "Failed to leave project");
     }
   };
 
@@ -925,7 +949,7 @@ export default function DashboardPage() {
             }
 
             return filtered.map((p) => (
-              <ProjectCard key={p._id} project={p} onDelete={handleDelete} />
+              <ProjectCard key={p._id} project={p} onDelete={handleDelete} onLeave={handleLeave} />
             ));
           })()}
         </div>

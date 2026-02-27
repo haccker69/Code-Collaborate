@@ -183,6 +183,32 @@ function langToExt(lang) {
   return map[lang] || "txt";
 }
 
+/**
+ * Leaves a project (member removes themselves).
+ * Owners cannot leave — they must delete the project.
+ * @param {string} projectId
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+async function leaveProject(projectId, userId) {
+  const project = await Project.findById(projectId);
+  if (!project) throw ApiError.notFound("Project not found");
+
+  if (project.owner.toString() === userId.toString()) {
+    throw ApiError.badRequest("Owners cannot leave their own project. Delete it instead.");
+  }
+
+  const memberIdx = project.members.findIndex(
+    (m) => m.user.toString() === userId.toString()
+  );
+  if (memberIdx === -1) {
+    throw ApiError.notFound("You are not a member of this project");
+  }
+
+  project.members.splice(memberIdx, 1);
+  await project.save();
+}
+
 module.exports = {
   createProject,
   listProjects,
@@ -191,4 +217,5 @@ module.exports = {
   deleteProject,
   joinByInviteCode,
   regenerateInviteCode,
+  leaveProject,
 };

@@ -5,8 +5,8 @@
 "use strict";
 
 const projectService = require("../services/project.service");
-const asyncHandler   = require("../utils/asyncHandler");
-const ApiError       = require("../utils/ApiError");
+const asyncHandler = require("../utils/asyncHandler");
+const ApiError = require("../utils/ApiError");
 
 /** POST /api/projects */
 const createProject = asyncHandler(async (req, res) => {
@@ -66,6 +66,12 @@ const regenerateInvite = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { inviteCode } });
 });
 
+/** POST /api/projects/:id/leave */
+const leaveProject = asyncHandler(async (req, res) => {
+  await projectService.leaveProject(req.params.id, req.user.id);
+  res.json({ success: true, message: "Left project successfully" });
+});
+
 module.exports = {
   createProject,
   listProjects,
@@ -74,4 +80,5 @@ module.exports = {
   deleteProject,
   joinProject,
   regenerateInvite,
+  leaveProject,
 };

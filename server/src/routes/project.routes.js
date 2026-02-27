@@ -18,7 +18,7 @@
 const { Router } = require("express");
 const {
   createProject, listProjects, getProject,
-  updateProject, deleteProject, joinProject, regenerateInvite,
+  updateProject, deleteProject, joinProject, regenerateInvite, leaveProject,
 } = require("../controllers/project.controller");
 
 const { getFileTree, getChildren, createFile, exportProject } = require("../controllers/file.controller");
@@ -38,6 +38,7 @@ router.patch("/:id", updateProject);
 router.delete("/:id", deleteProject);
 
 router.post("/:id/invite/regenerate", regenerateInvite);
+router.post("/:id/leave", leaveProject);
 
 // File tree nested under project
 router.get("/:projectId/files", getFileTree);
