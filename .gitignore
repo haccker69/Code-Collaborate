@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment variables (contain secrets)
+.env
+
+# Build output
+client/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+
+# Gemini agent files
+.gemini/

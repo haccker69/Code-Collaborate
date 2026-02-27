@@ -1,0 +1,33 @@
+{
+  "name": "collabdev-server",
+  "version": "1.0.0",
+  "description": "CollabDev backend — Node.js + Express + Socket.IO",
+  "main": "server.js",
+  "scripts": {
+    "dev": "concurrently \"nodemon server.js\" \"node yjs-server.js\"",
+    "start": "node server.js",
+    "lint": "eslint src --ext .js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.4.1",
+    "morgan": "^1.10.0",
+    "redis": "^4.6.14",
+    "socket.io": "^4.7.5",
+    "y-websocket": "^1.5.4",
+    "yjs": "^13.6.29"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
