@@ -55,7 +55,7 @@ const sendOTP = asyncHandler(async (req, res) => {
 const verifyOTP = asyncHandler(async (req, res) => {
   const { email, code } = req.body;
   if (!email || !code) throw ApiError.badRequest("email and code are required");
-  const result = otpService.verifyOTP(email, code);
+  const result = await otpService.verifyOTP(email, code);
   if (!result.valid) throw ApiError.badRequest(result.message);
   res.json({ success: true, message: "Email verified successfully" });
 });
@@ -67,7 +67,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     throw ApiError.badRequest("email, code, and newPassword are required");
   }
   // Verify OTP first
-  const otpResult = otpService.verifyOTP(email, code);
+  const otpResult = await otpService.verifyOTP(email, code);
   if (!otpResult.valid) throw ApiError.badRequest(otpResult.message);
 
   // Reset the password
