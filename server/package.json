@@ -4,7 +4,7 @@
   "description": "CollabDev backend — Node.js + Express + Socket.IO",
   "main": "server.js",
   "scripts": {
-    "dev": "concurrently \"nodemon server.js\" \"node yjs-server.js\"",
+    "dev": "nodemon server.js",
     "start": "node server.js",
     "lint": "eslint src --ext .js"
   },
@@ -20,6 +20,7 @@
     "morgan": "^1.10.0",
     "redis": "^4.6.14",
     "socket.io": "^4.7.5",
+    "ws": "^8.19.0",
     "y-websocket": "^1.5.4",
     "yjs": "^13.6.29"
   },

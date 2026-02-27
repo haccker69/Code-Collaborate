@@ -17,7 +17,7 @@ import { useRoom } from "../../contexts/RoomContext";
 import Toolbar from "./Toolbar";
 
 const TOOLS = { PEN: "pen", ERASER: "eraser" };
-const YJS_WS_URL = "ws://localhost:1234";
+const YJS_WS_URL = (import.meta.env.VITE_SOCKET_URL || "http://localhost:5002").replace(/^http/, "ws") + "/yjs";
 
 export default function DrawBoard() {
   const canvasRef = useRef(null);

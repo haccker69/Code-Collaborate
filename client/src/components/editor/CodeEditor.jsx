@@ -42,7 +42,7 @@ import { webcontainerInstance } from "../../utils/webcontainerManager";
 
 loader.config({ monaco });
 
-const YJS_WS_URL = "ws://localhost:1234";
+const YJS_WS_URL = (import.meta.env.VITE_SOCKET_URL || "http://localhost:5002").replace(/^http/, "ws") + "/yjs";
 
 // ── Custom theme matching reference ──────────────────────────────────
 const THEME_NAME = "collabdev-dark";
