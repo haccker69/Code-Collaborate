@@ -24,6 +24,9 @@ const executeRoutes = require("./src/routes/execute.routes");
 function createApp() {
   const app = express();
 
+  // ── Trust proxy (required behind Render/Heroku/etc reverse proxies) ──
+  app.set("trust proxy", 1);
+
   // ── Security & parsing ─────────────────────────────────────────────
   app.use(helmet());
   app.use(cors({ origin: corsCfg.clientOrigin, credentials: true }));
