@@ -194,7 +194,7 @@ export default function CodeEditor({ fileId, activeFileId, initialContent, langu
   const ydocRef = useRef(null);
   const providerRef = useRef(null);
   const bindingRef = useRef(null);
-  const initializedRef = useRef(false);
+
 
   const [lang, setLang] = useState(language || "javascript");
   const [editorMounted, setEditorMounted] = useState(false);
@@ -222,7 +222,9 @@ export default function CodeEditor({ fileId, activeFileId, initialContent, langu
     bindingRef.current?.destroy();
     providerRef.current?.destroy();
     ydocRef.current?.destroy();
-    initializedRef.current = false;
+    bindingRef.current = null;
+    providerRef.current = null;
+    ydocRef.current = null;
 
     const ydoc = new Y.Doc();
     const roomName = `code-${projectId}-${fileId}`;
@@ -232,28 +234,40 @@ export default function CodeEditor({ fileId, activeFileId, initialContent, langu
     ydocRef.current = ydoc;
     providerRef.current = provider;
 
-    // When provider syncs, seed the Y.Text with initial content if it's empty
-    provider.on("sync", (synced) => {
-      if (synced && !initializedRef.current) {
-        initializedRef.current = true;
-        if (ytext.length === 0 && initialContent) {
-          ytext.insert(0, initialContent);
-        }
-      }
-    });
-
-    // Bind Yjs to Monaco
     const editor = editorRef.current;
     const model = editor.getModel();
-    const binding = new MonacoBinding(
-      ytext,
-      model,
-      new Set([editor]),
-      provider.awareness
-    );
-    bindingRef.current = binding;
 
-    // Track content for save/execute
+    // Wait for initial sync BEFORE creating the binding
+    // This ensures we don't get a race between defaultValue and Yjs state
+    const onSync = (synced) => {
+      if (!synced) return;
+
+      // Seed initial content ONLY if this is a brand-new Yjs document
+      if (ytext.length === 0 && initialContent) {
+        ydoc.transact(() => {
+          ytext.insert(0, initialContent);
+        });
+      }
+
+      // NOW create the binding — Yjs state is authoritative at this point
+      if (!bindingRef.current) {
+        // Clear whatever Monaco had and let the binding take over
+        const binding = new MonacoBinding(
+          ytext,
+          model,
+          new Set([editor]),
+          provider.awareness
+        );
+        bindingRef.current = binding;
+      }
+
+      // Track content for save/execute
+      contentRef.current = ytext.toString();
+    };
+
+    provider.on("sync", onSync);
+
+    // Track content changes for save/execute
     const updateContent = () => {
       contentRef.current = ytext.toString();
       dirtyRef.current = true;
@@ -261,10 +275,12 @@ export default function CodeEditor({ fileId, activeFileId, initialContent, langu
     ytext.observe(updateContent);
 
     return () => {
+      provider.off("sync", onSync);
       ytext.unobserve(updateContent);
-      binding.destroy();
+      bindingRef.current?.destroy();
       provider.destroy();
       ydoc.destroy();
+      bindingRef.current = null;
     };
   }, [fileId, projectId, editorMounted]);
 
@@ -369,7 +385,7 @@ export default function CodeEditor({ fileId, activeFileId, initialContent, langu
         <Editor
           height="100%"
           language={toMonacoLang(lang)}
-          defaultValue={initialContent}
+          defaultValue=""
           theme={THEME_NAME}
           beforeMount={handleBeforeMount}
           onMount={handleEditorMount}
