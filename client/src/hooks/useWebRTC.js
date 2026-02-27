@@ -9,23 +9,38 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSocket } from "./useSocket";
-import { useRoom }   from "../contexts/RoomContext";
+import { useRoom } from "../contexts/RoomContext";
 
 const ICE_SERVERS = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443?transport=tcp",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
   ],
 };
 
 export function useWebRTC() {
-  const { socket }    = useSocket();
+  const { socket } = useSocket();
   const { projectId } = useRoom();
 
   const [localStream, setLocalStream] = useState(null);
-  const [isMuted, setIsMuted]         = useState(false);
-  const [inVoice, setInVoice]         = useState(false);
-  const [peers, setPeers]             = useState([]);
+  const [isMuted, setIsMuted] = useState(false);
+  const [inVoice, setInVoice] = useState(false);
+  const [peers, setPeers] = useState([]);
 
   const peerConns = useRef(new Map()); // socketId → RTCPeerConnection
 
@@ -80,7 +95,7 @@ export function useWebRTC() {
     // We just joined — server sends us the list of existing peers
     const onPeers = async ({ peers: existingPeers }) => {
       for (const peerId of existingPeers) {
-        const pc    = createPeerConnection(peerId, localStream);
+        const pc = createPeerConnection(peerId, localStream);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         socket.emit("voice:offer", { to: peerId, offer, roomId: projectId });
@@ -113,18 +128,18 @@ export function useWebRTC() {
 
     const onPeerLeft = ({ socketId }) => removePeer(socketId);
 
-    socket.on("voice:peers",         onPeers);
-    socket.on("voice:offer",         onOffer);
-    socket.on("voice:answer",        onAnswer);
+    socket.on("voice:peers", onPeers);
+    socket.on("voice:offer", onOffer);
+    socket.on("voice:answer", onAnswer);
     socket.on("voice:ice_candidate", onIceCandidate);
-    socket.on("voice:peer_left",     onPeerLeft);
+    socket.on("voice:peer_left", onPeerLeft);
 
     return () => {
-      socket.off("voice:peers",         onPeers);
-      socket.off("voice:offer",         onOffer);
-      socket.off("voice:answer",        onAnswer);
+      socket.off("voice:peers", onPeers);
+      socket.off("voice:offer", onOffer);
+      socket.off("voice:answer", onAnswer);
       socket.off("voice:ice_candidate", onIceCandidate);
-      socket.off("voice:peer_left",     onPeerLeft);
+      socket.off("voice:peer_left", onPeerLeft);
     };
   }, [socket, localStream, projectId, createPeerConnection, removePeer]);
 

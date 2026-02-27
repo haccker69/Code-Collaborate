@@ -2876,6 +2876,11 @@ a:hover {
   border: 2px solid var(--bg-1);
 }
 
+.voice-room__peer-online--idle {
+  background: var(--text-dim);
+  opacity: 0.5;
+}
+
 .voice-room__peer-name {
   flex: 1;
   font-size: 13px;
@@ -2886,6 +2891,10 @@ a:hover {
   font-size: 16px !important;
   color: var(--text-dim);
   opacity: 0.4;
+}
+
+.voice-room__peer-status--offline {
+  opacity: 0.2;
 }
 
 .voice-room__peer-status--active {
