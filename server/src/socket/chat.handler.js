@@ -12,6 +12,7 @@
 "use strict";
 
 const Message = require("../models/Message");
+const User = require("../models/User");
 const { isRestricted } = require("./moderation.handler");
 
 /**
@@ -31,9 +32,35 @@ function registerChatHandlers(io, socket) {
                 .limit(50)
                 .lean();
 
+            // Collect unique sender emails that are missing senderName
+            const emailsNeedingLookup = [
+                ...new Set(
+                    messages
+                        .filter((m) => !m.senderName)
+                        .map((m) => m.sender)
+                        .filter(Boolean)
+                ),
+            ];
+
+            // Batch lookup usernames from User model
+            let emailToUsername = {};
+            if (emailsNeedingLookup.length > 0) {
+                const users = await User.find(
+                    { email: { $in: emailsNeedingLookup } },
+                    { email: 1, username: 1 }
+                ).lean();
+                for (const u of users) {
+                    emailToUsername[u.email] = u.username;
+                }
+            }
+
             const formatted = messages.map((m) => ({
                 id: m._id.toString(),
                 sender: m.sender,
+                senderName:
+                    m.senderName ||
+                    emailToUsername[m.sender] ||
+                    m.sender?.split("@")[0],
                 senderId: m.senderId,
                 text: m.text,
                 timestamp: m.createdAt.toISOString(),
@@ -60,6 +87,7 @@ function registerChatHandlers(io, socket) {
 
         const message = {
             sender: socket.user.email,
+            senderName: socket.user.username || socket.user.email?.split("@")[0],
             senderId: socket.user.id,
             text: text.trim(),
             timestamp: new Date().toISOString(),
@@ -70,6 +98,7 @@ function registerChatHandlers(io, socket) {
             const saved = await Message.create({
                 project: roomId,
                 sender: message.sender,
+                senderName: message.senderName,
                 senderId: message.senderId,
                 text: message.text,
             });

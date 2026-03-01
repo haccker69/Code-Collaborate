@@ -84,12 +84,12 @@ export default function TeamChat() {
                     <div className="team-chat__empty">No messages yet. Say hello! 👋</div>
                 )}
                 {messages.map((msg) => {
-                    const isOwn = msg.sender === user?.email;
+                    const isOwn = msg.senderId === user?.id || msg.sender === user?.email;
                     return (
                         <div key={msg.id} className={`team-chat__msg ${isOwn ? "team-chat__msg--own" : ""}`}>
                             <div className="team-chat__msg-header">
                                 <strong className="team-chat__msg-sender">
-                                    {isOwn ? "You" : msg.sender?.split("@")[0]}
+                                    {isOwn ? "You" : (msg.senderName || msg.sender?.split("@")[0])}
                                 </strong>
                                 <span className="team-chat__msg-time">{formatTime(msg.timestamp)}</span>
                             </div>

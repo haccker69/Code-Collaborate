@@ -9,6 +9,7 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const { cors: corsCfg, jwt: jwtCfg } = require("../config/env");
+const User = require("../models/User");
 
 // ── Handler imports ──────────────────────────────────────────────────
 const { registerRoomHandlers } = require("./room.handler");
@@ -38,14 +39,19 @@ function createSocketServer(httpServer) {
 
   // ── Socket auth middleware ─────────────────────────────────────────
   // Verifies JWT on every new connection before the socket is accepted.
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error("AUTH_REQUIRED"));
 
     try {
       const decoded = jwt.verify(token, jwtCfg.secret);
-      // Attach user info to the socket for use in handlers
-      socket.user = { id: decoded.sub, email: decoded.email };
+      // Always fetch username from DB to handle old JWTs without username
+      let username = decoded.username;
+      if (!username) {
+        const dbUser = await User.findById(decoded.sub).select("username").lean();
+        username = dbUser?.username || decoded.email?.split("@")[0];
+      }
+      socket.user = { id: decoded.sub, email: decoded.email, username };
       next();
     } catch {
       next(new Error("AUTH_INVALID"));

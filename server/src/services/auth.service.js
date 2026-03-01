@@ -17,7 +17,7 @@ const ApiError = require("../utils/ApiError");
  */
 function signToken(user) {
   return jwt.sign(
-    { sub: user._id.toString(), email: user.email },
+    { sub: user._id.toString(), email: user.email, username: user.username },
     jwtCfg.secret,
     { expiresIn: jwtCfg.expiresIn }
   );

@@ -750,10 +750,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <button className="room__icon-btn" title="Notifications" style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", position: "relative" }}>
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-
           <div className="dashboard__divider" style={{ height: 32 }} />
 
           <div className="dashboard__user" style={{ gap: 12, position: "relative" }}>

@@ -4,9 +4,10 @@
  * Uses Material Symbols icons, "EXPLORER" header with action buttons.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoom } from "../../contexts/RoomContext";
 import { useFileTree } from "../../hooks/useFileTree";
+import { exportProject } from "../../api/fileApi";
 import FileNode from "./FileNode";
 
 /**
@@ -25,6 +26,7 @@ export default function FileTree({ projectId }) {
   // "new item" form state: null | { parentId, type }
   const [newItem, setNewItem] = useState(null);
   const [newName, setNewName] = useState("");
+  const [downloading, setDownloading] = useState(false);
 
   const handleOpen = (fileId, language, fileName) => openFile(fileId, language, fileName);
 
@@ -52,6 +54,71 @@ export default function FileTree({ projectId }) {
     }
   };
 
+  /**
+   * Download all project files as a .zip using JSZip (loaded from CDN).
+   */
+  const handleDownload = useCallback(async () => {
+    setDownloading(true);
+    try {
+      const files = await exportProject(projectId);
+      if (!files || files.length === 0) {
+        alert("No files to download.");
+        return;
+      }
+
+      // Build a lookup map: id → file
+      const idMap = {};
+      for (const f of files) {
+        idMap[f._id] = f;
+      }
+
+      // Reconstruct full path for each file by walking the parentId chain
+      const getPath = (file) => {
+        const parts = [file.name];
+        let current = file;
+        while (current.parentId && idMap[current.parentId]) {
+          current = idMap[current.parentId];
+          parts.unshift(current.name);
+        }
+        return parts.join("/");
+      };
+
+      // Dynamically load JSZip from CDN (avoids adding dependency)
+      if (!window.JSZip) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      const zip = new window.JSZip();
+
+      for (const file of files) {
+        if (file.type === "file") {
+          zip.file(getPath(file), file.content || "");
+        }
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `project-${projectId.slice(-6)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("[download] Failed:", err);
+      alert("Download failed. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }, [projectId]);
+
   return (
     <div className="file-tree">
       {/* Header */}
@@ -71,6 +138,16 @@ export default function FileTree({ projectId }) {
             title="New folder"
           >
             <span className="material-symbols-outlined">create_new_folder</span>
+          </button>
+          <button
+            className="file-tree__icon-btn"
+            onClick={handleDownload}
+            title="Download project as ZIP"
+            disabled={downloading}
+          >
+            <span className="material-symbols-outlined">
+              {downloading ? "hourglass_top" : "download"}
+            </span>
           </button>
           <button
             className="file-tree__icon-btn"

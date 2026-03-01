@@ -449,10 +449,6 @@ export default function RoomPage() {
                 RUN
               </button>
               <div className="room__actions-right">
-                <button className="room__icon-btn" title="Notifications" onClick={handleCopyInvite}>
-                  <span className="material-symbols-outlined">notifications</span>
-                  <span className="room__notif-dot" />
-                </button>
                 <div style={{ position: "relative" }}>
                   <div
                     className="room__user-avatar"
